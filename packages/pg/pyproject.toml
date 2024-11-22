@@ -1,0 +1,19 @@
+
+[project]
+name = "radium226-pg"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "psycopg2>=2.9.10",
+]
+
+[tool.uv]
+package = true
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.3",
+    "temppathlib>=1.2.0",
+]
