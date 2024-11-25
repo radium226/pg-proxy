@@ -1,0 +1,20 @@
+
+[project]
+name = "radium226-socket_forwarder"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+]
+
+[project.scripts]
+forward-socket = "radium226.socket_forwarder:app"
+
+[tool.uv]
+package = true
+dev-dependencies = [
+  "psycopg2>=2.9.10",
+  "pytest>=8.3.3",
+  "radium226-pg",
+]

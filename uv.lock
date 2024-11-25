@@ -6,6 +6,7 @@ members = [
     "radium226",
     "radium226-pg",
     "radium226-pg-proxy",
+    "radium226-socket-forwarder",
 ]
 
 [[package]]
@@ -153,6 +154,27 @@ requires-dist = [
     { name = "click", specifier = ">=8.1.7" },
     { name = "construct", specifier = ">=2.10.70" },
 ]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "psycopg2", specifier = ">=2.9.10" },
+    { name = "pytest", specifier = ">=8.3.3" },
+    { name = "radium226-pg", editable = "packages/pg" },
+]
+
+[[package]]
+name = "radium226-socket-forwarder"
+version = "0.1.0"
+source = { editable = "packages/socket_forwarder" }
+
+[package.dev-dependencies]
+dev = [
+    { name = "psycopg2" },
+    { name = "pytest" },
+    { name = "radium226-pg" },
+]
+
+[package.metadata]
 
 [package.metadata.requires-dev]
 dev = [
