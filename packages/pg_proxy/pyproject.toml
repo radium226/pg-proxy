@@ -16,6 +16,7 @@ pg_proxy = "radium226.pg_proxy.cli:app"
 [tool.uv]
 package = true
 dev-dependencies = [
+  "pendulum>=3.0.0",
   "psycopg2>=2.9.10",
   "pytest>=8.3.3",
   "radium226-pg",
