@@ -1,6 +1,11 @@
 import io
 import struct
 
+from .server import (
+    Server,
+    Handler,
+)
+
 from construct import (
     Enum, 
     Bytes,
@@ -136,12 +141,15 @@ class WireWriter():
         return self.stream.getvalue()
 
 
-class WireHandler():
+class WireHandler(Handler):
 
     def __init__(self):
         pass
 
-    def handle(self, reader: BufferedReader, writer: BufferedWriter) -> bool:
+    def handle(self, reader: BytesIO, writer: BytesIO) -> bool:
+
+        print("Handling! ")
+
         client_command = Enum(
             Bytes(1),
             bind=b"B",
@@ -202,18 +210,21 @@ class WireHandler():
             row_description=b"T",
         )
 
-        first_message = FirstMessage.parse_stream(reader)
+        first_message = RawCopy(FirstMessage).parse_stream(reader)
+        print(first_message)
+
+
 
         match first_message.code:
             case "ssl_request":
                 print("SSL request! ")
                 SSLRequest.parse_stream(reader)
                 writer.write(ServerResponseCode.build(ServerResponseCode.notice_response))
-                return True
-        
+                
             case "startup_message":
                 payload = Bytes(first_message.message_length - FirstMessage.sizeof()).parse_stream(reader)
                 parameters = Parameters.parse_stream(BytesIO(payload))
                 parameters = dict(list(zip(parameters[::2], parameters[1::2])))
                 print(parameters)
-                return False
+                writer.write(ServerResponseCode.build(ServerResponseCode.notice_response))
+                

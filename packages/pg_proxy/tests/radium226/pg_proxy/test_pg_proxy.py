@@ -13,23 +13,28 @@ def pg() -> PostgreSQL:
         yield pg
 
 
-def test_pg_proxy(pg: PostgreSQL) -> None:
+@fixture
+def pg_proxy(pg: PostgreSQL) -> PostgreSQLProxy:
     with PostgreSQLProxy(
         remote_host=pg.host,
         remote_port=pg.port,
     ) as pg_proxy:
-        print(f"pg_proxy={pg_proxy}")
-        host = pg_proxy.host
-        print(f"host={host}")
+        yield pg_proxy
 
-        port = pg_proxy.port
-        print(f"port={port}")
 
-        with closing(psycopg2.connect(
-            dbname="postgres",
-            user="postgres",
-            host=host,
-            port=port,
-        )) as connection, closing(connection.cursor()) as cursor: 
-            cursor.execute("SELECT 1")
-            assert cursor.fetchone() == (1,)    
+def test_pg_proxy(pg_proxy: PostgreSQLProxy) -> None:
+    print(f"pg_proxy={pg_proxy}")
+    host = pg_proxy.host
+    print(f"host={host}")
+
+    port = pg_proxy.port
+    print(f"port={port}")
+
+    with closing(psycopg2.connect(
+        dbname="postgres",
+        user="postgres",
+        host=host,
+        port=port,
+    )) as connection, closing(connection.cursor()) as cursor: 
+        cursor.execute("SELECT 1")
+        assert cursor.fetchone() == (1,)

@@ -32,7 +32,7 @@ test-pg:
 
 .PHONY: test-pg_proxy
 test-pg_proxy:
-	uv run pytest --capture="no" "packages/pg_proxy" -k "test_server"
+	uv run pytest --capture="no" "packages/pg_proxy" -k "test_pg_proxy"
 
 
 .PHONY: test-construct
