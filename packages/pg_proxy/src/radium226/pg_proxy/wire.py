@@ -1,5 +1,7 @@
 import io
 import struct
+from sqlglot import parse_one, exp
+
 
 from radium226.socket_forwarder import EventHandler
 
@@ -24,6 +26,7 @@ from construct import (
     RepeatUntil,
     CString,
     Const,
+    Select
 )
 
 from io import BufferedReader, BufferedWriter, BytesIO
@@ -154,7 +157,7 @@ class WireEventHandler(EventHandler):
         return
 
     def on_data_sent(self, data: bytes):
-        # print(f"Data sent! data={data}")
+        print(f"Data sent! data={data}")
         
         buffer = BytesIO(data)
 
@@ -172,6 +175,19 @@ class WireEventHandler(EventHandler):
             terminate=b"X",
         )
 
+        FirstMessageCode = Enum(
+            Int, 
+            ssl_request=80877103,
+            startup_message=196608,
+        )
+
+        MessageLength = Int
+
+        FirstMessage = Struct(
+            "message_length" / MessageLength,
+            "code" / FirstMessageCode,
+        )
+
         try:
             Message = Struct(
                 "client_command" / ClientCommand,
@@ -179,19 +195,23 @@ class WireEventHandler(EventHandler):
                     this.client_command,
                     {
                         ClientCommand.query: Struct(
-                            "message_length" / Int,
+                            "message_length" / MessageLength,
                             "query" / CString("utf8"),
                         )
                     },
                 )
             )
 
-            message = Message.parse(data)
+            message = Select(FirstMessage, Message).parse(data)
+            print(message)
 
             match message.client_command:
                 case ClientCommand.query:
                     query = message.content.query
-                    print(f"Query: {query}")
+
+                    print(f"query={query}")
+                    for table in parse_one(query, dialect="postgres").find_all(exp.Table):
+                        print(f"table={table}")
 
         except Exception as e:
             print(repr(e))
