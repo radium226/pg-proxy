@@ -37,4 +37,6 @@ def test_pg_proxy(pg_proxy: PostgreSQLProxy) -> None:
         port=port,
     )) as connection, closing(connection.cursor()) as cursor: 
         cursor.execute("SELECT 1")
-        assert cursor.fetchone() == (1,)
+        result = cursor.fetchone() 
+        print(f"result={result}")
+        assert result == (1,)

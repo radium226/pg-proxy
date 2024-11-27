@@ -1,6 +1,8 @@
 import io
 import struct
 
+from radium226.socket_forwarder import EventHandler
+
 from .server import (
     Server,
     Handler,
@@ -141,12 +143,20 @@ class WireWriter():
         return self.stream.getvalue()
 
 
-class WireHandler(Handler):
+class WireEventHandler(EventHandler):
 
     def __init__(self):
         pass
 
-    def handle(self, reader: BytesIO, writer: BytesIO) -> bool:
+    def on_data_received(self, data: bytes):
+        print(f"Data received! data={data}")
+        return
+
+    def on_data_sent(self, data: bytes):
+        print(f"Data sent! data={data}")
+        return 
+    
+        buffer = BytesIO(data)
 
         print("Handling! ")
 
@@ -210,21 +220,19 @@ class WireHandler(Handler):
             row_description=b"T",
         )
 
-        first_message = RawCopy(FirstMessage).parse_stream(reader)
+        first_message = FirstMessage.parse_stream(buffer)
         print(first_message)
-
-
 
         match first_message.code:
             case "ssl_request":
                 print("SSL request! ")
-                SSLRequest.parse_stream(reader)
-                writer.write(ServerResponseCode.build(ServerResponseCode.notice_response))
+                # SSLRequest.parse_stream(buffer)
                 
             case "startup_message":
-                payload = Bytes(first_message.message_length - FirstMessage.sizeof()).parse_stream(reader)
-                parameters = Parameters.parse_stream(BytesIO(payload))
-                parameters = dict(list(zip(parameters[::2], parameters[1::2])))
-                print(parameters)
-                writer.write(ServerResponseCode.build(ServerResponseCode.notice_response))
+                print("Startup message! ")
+                # payload = Bytes(first_message.message_length - FirstMessage.sizeof()).parse_stream(buffer)
+                # parameters = Parameters.parse_stream(BytesIO(payload))
+                # parameters = dict(list(zip(parameters[::2], parameters[1::2])))
+                # print(parameters)
                 
+        print("We are here! ")

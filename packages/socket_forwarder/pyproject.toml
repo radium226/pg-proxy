@@ -6,6 +6,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "python-statemachine>=2.4.0",
 ]
 
 [project.scripts]
@@ -16,5 +17,6 @@ package = true
 dev-dependencies = [
   "psycopg2>=2.9.10",
   "pytest>=8.3.3",
+  "python-statemachine>=2.4.0",
   "radium226-pg",
 ]

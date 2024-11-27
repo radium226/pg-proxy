@@ -38,3 +38,8 @@ test-pg_proxy:
 .PHONY: test-construct
 test-construct:
 	uv run pytest --capture="no" "packages/pg_proxy" -k "test_construct"
+
+
+.PHONY: test-fsm
+test-fsm:
+	uv run pytest --capture="no" "packages/socket_forwarder" -k "test_fsm"

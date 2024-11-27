@@ -127,6 +127,15 @@ wheels = [
 ]
 
 [[package]]
+name = "python-statemachine"
+version = "2.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/58/88/6bba4ca5a30d15928ee1c11c423edcd030559b2a1236c2b64f1dc408d2a2/python_statemachine-2.4.0.tar.gz", hash = "sha256:1f0cce643c9d17b130dbeb369c293c97d6d0dc25931d45bc8ff667cd7cd67747", size = 40916 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6d/bc/a0cd6ea3fed5e49c8c83b0eefc1ae382a5ecb4963adfb35696c5275cf78c/python_statemachine-2.4.0-py3-none-any.whl", hash = "sha256:c9efc4ca9e2627b981ab2b6b41af294fe30ae6e7f0ca927b2cd368ea3f1c896c", size = 48205 },
+]
+
+[[package]]
 name = "radium226"
 version = "0.1.0"
 source = { virtual = "." }
@@ -203,20 +212,26 @@ dev = [
 name = "radium226-socket-forwarder"
 version = "0.1.0"
 source = { editable = "packages/socket_forwarder" }
+dependencies = [
+    { name = "python-statemachine" },
+]
 
 [package.dev-dependencies]
 dev = [
     { name = "psycopg2" },
     { name = "pytest" },
+    { name = "python-statemachine" },
     { name = "radium226-pg" },
 ]
 
 [package.metadata]
+requires-dist = [{ name = "python-statemachine", specifier = ">=2.4.0" }]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "psycopg2", specifier = ">=2.9.10" },
     { name = "pytest", specifier = ">=8.3.3" },
+    { name = "python-statemachine", specifier = ">=2.4.0" },
     { name = "radium226-pg", editable = "packages/pg" },
 ]
 
