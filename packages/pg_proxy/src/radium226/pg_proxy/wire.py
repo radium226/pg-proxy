@@ -23,6 +23,7 @@ from construct import (
     Array,
     RepeatUntil,
     CString,
+    Const,
 )
 
 from io import BufferedReader, BufferedWriter, BytesIO
@@ -149,18 +150,60 @@ class WireEventHandler(EventHandler):
         pass
 
     def on_data_received(self, data: bytes):
-        print(f"Data received! data={data}")
+        # print(f"Data received! data={data}")
         return
 
     def on_data_sent(self, data: bytes):
-        print(f"Data sent! data={data}")
+        # print(f"Data sent! data={data}")
+        
+        buffer = BytesIO(data)
+
+        ClientCommand = Enum(
+            Bytes(1),
+            bind=b"B",
+            close=b"C",
+            describe=b"D",
+            execute=b"E",
+            flush=b"H",
+            query=b"Q",
+            parse=b"P",
+            password_message=b"p",
+            sync=b"S",
+            terminate=b"X",
+        )
+
+        try:
+            Message = Struct(
+                "client_command" / ClientCommand,
+                "content" / Switch(
+                    this.client_command,
+                    {
+                        ClientCommand.query: Struct(
+                            "message_length" / Int,
+                            "query" / CString("utf8"),
+                        )
+                    },
+                )
+            )
+
+            message = Message.parse(data)
+
+            match message.client_command:
+                case ClientCommand.query:
+                    query = message.content.query
+                    print(f"Query: {query}")
+
+        except Exception as e:
+            print(repr(e))
+            
+
         return 
     
         buffer = BytesIO(data)
 
         print("Handling! ")
 
-        client_command = Enum(
+        ClientCommand = Enum(
             Bytes(1),
             bind=b"B",
             close=b"C",

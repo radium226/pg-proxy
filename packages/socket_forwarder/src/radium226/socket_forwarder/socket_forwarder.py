@@ -90,16 +90,16 @@ class SocketForwarder():
         )
 
         def accept_connection():
-            print("[accept_connection] We're going to accept a new connection from downstream... ")
+            #print("[accept_connection] We're going to accept a new connection from downstream... ")
             downstream_connection_socket, _ = downstream_server_socket.accept()
             downstream_connection_socket.setblocking(False)
-            print("[accept_connection] We've accepted a new connection from downstream! ")
+            #print("[accept_connection] We've accepted a new connection from downstream! ")
 
-            print("[accept_connection] We're going to connect to the upstream server... ")
+            #print("[accept_connection] We're going to connect to the upstream server... ")
             upstream_connection_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             upstream_connection_socket.setblocking(False)
             upstream_connection_socket.connect_ex(self._remote_host_and_port.as_tuple())
-            print("[accept_connection] We've connected to the upstream server! ")
+            #print("[accept_connection] We've connected to the upstream server! ")
 
             context = ForwardingContext(
                 upstream_connection_socket=upstream_connection_socket,
@@ -129,16 +129,16 @@ class SocketForwarder():
             if mask & selectors.EVENT_READ:
                 match side:
                     case Side.UPSTREAM:
-                        print(f"[handle_connection/selectors.EVENT_READ/Side.UPSTREAM] Reading data from upstream... ")
+                        #print(f"[handle_connection/selectors.EVENT_READ/Side.UPSTREAM] Reading data from upstream... ")
                         chunk = context.upstream_connection_socket.recv(BUFFER_SIZE)
                         context.upstream_to_downstream_buffer += chunk
                         close_downstream_connection_socket_after_write = len(chunk) == 0
                         if close_downstream_connection_socket_after_write:
-                            print(f"[handle_connection/selectors.EVENT_READ/Side.DOWNSTREAM] Unregistering upstream connection socket... ")
+                            #print(f"[handle_connection/selectors.EVENT_READ/Side.DOWNSTREAM] Unregistering upstream connection socket... ")
                             selector.unregister(context.upstream_connection_socket)
                         
-                        print(f"[handle_connection/selectors.EVENT_READ/Side.UPSTREAM] chunk={chunk}")
-                        print(f"[handle_connection/selectors.EVENT_READ/Side.UPSTREAM] close_downstream_connection_socket_after_write={close_downstream_connection_socket_after_write}")
+                        #print(f"[handle_connection/selectors.EVENT_READ/Side.UPSTREAM] chunk={chunk}")
+                        #print(f"[handle_connection/selectors.EVENT_READ/Side.UPSTREAM] close_downstream_connection_socket_after_write={close_downstream_connection_socket_after_write}")
                         if len(context.upstream_to_downstream_buffer) > 0 or close_downstream_connection_socket_after_write:
                             selector.modify(
                                 context.downstream_connection_socket, 
@@ -147,16 +147,16 @@ class SocketForwarder():
                             )
 
                     case Side.DOWNSTREAM:
-                        print(f"[handle_connection/selectors.EVENT_READ/Side.DOWNSTREAM] Reading data from downstream... ")
+                        #print(f"[handle_connection/selectors.EVENT_READ/Side.DOWNSTREAM] Reading data from downstream... ")
                         chunk = context.downstream_connection_socket.recv(BUFFER_SIZE)
                         context.downstream_to_upstream_buffer += chunk
                         close_upstream_connection_socket_after_write = len(chunk) == 0
                         if close_upstream_connection_socket_after_write:
-                            print(f"[handle_connection/selectors.EVENT_READ/Side.DOWNSTREAM] Unregistering downstream connection socket... ")
+                            #print(f"[handle_connection/selectors.EVENT_READ/Side.DOWNSTREAM] Unregistering downstream connection socket... ")
                             selector.unregister(context.downstream_connection_socket)
 
-                        print(f"[handle_connection/selectors.EVENT_READ/Side.DOWNSTREAM] chunk={chunk}")
-                        print(f"[handle_connection/selectors.EVENT_READ/Side.DOWNSTREAM] close_upstream_connection_socket_after_write={close_upstream_connection_socket_after_write}")
+                        #print(f"[handle_connection/selectors.EVENT_READ/Side.DOWNSTREAM] chunk={chunk}")
+                        #print(f"[handle_connection/selectors.EVENT_READ/Side.DOWNSTREAM] close_upstream_connection_socket_after_write={close_upstream_connection_socket_after_write}")
                         if len(context.downstream_to_upstream_buffer) > 0 or close_upstream_connection_socket_after_write:
                             selector.modify(
                                 context.upstream_connection_socket, 
@@ -170,7 +170,7 @@ class SocketForwarder():
                         if len(context.last_full_downstream_to_upstream_buffer) == 0:
                             context.last_full_downstream_to_upstream_buffer = context.downstream_to_upstream_buffer
 
-                        print(f"[handle_connection/selectors.EVENT_WRITE/Side.UPSTREAM] Sending data from downstream to upstream... ")
+                        #print(f"[handle_connection/selectors.EVENT_WRITE/Side.UPSTREAM] Sending data from downstream to upstream... ")
                         try:
                             n = context.upstream_connection_socket.send(context.downstream_to_upstream_buffer)
                             context.downstream_to_upstream_buffer = context.downstream_to_upstream_buffer[n:]
@@ -200,7 +200,7 @@ class SocketForwarder():
                     case Side.DOWNSTREAM:
                         if len(context.last_full_upstream_to_downstream_buffer) == 0:
                             context.last_full_upstream_to_downstream_buffer = context.upstream_to_downstream_buffer
-                        print(f"[handle_connection/selectors.EVENT_WRITE/Side.DOWNSTREAM] Sending data from upstream to downstream... ")
+                        #print(f"[handle_connection/selectors.EVENT_WRITE/Side.DOWNSTREAM] Sending data from upstream to downstream... ")
                         try:
                             n = context.downstream_connection_socket.send(context.upstream_to_downstream_buffer)
                             context.upstream_to_downstream_buffer = context.upstream_to_downstream_buffer[n:]
@@ -235,7 +235,7 @@ class SocketForwarder():
                 except Empty:
                     command = Command.CONTINUE_LOOP
 
-                print(f"[loop] command={command}")
+                #print(f"[loop] command={command}")
 
                 if command == Command.BREAK_LOOP:
                     break

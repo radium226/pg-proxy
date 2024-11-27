@@ -36,7 +36,6 @@ def test_pg_proxy(pg_proxy: PostgreSQLProxy) -> None:
         host=host,
         port=port,
     )) as connection, closing(connection.cursor()) as cursor: 
-        cursor.execute("SELECT 1")
-        result = cursor.fetchone() 
-        print(f"result={result}")
-        assert result == (1,)
+        cursor.execute("SELECT generate_series(1, 10)")
+        for index, result in enumerate(cursor, start=1):
+            assert result == (index,)
