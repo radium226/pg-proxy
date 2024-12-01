@@ -9,7 +9,7 @@ import psycopg2
 
 @fixture
 def pg() -> PostgreSQL:
-    with PostgreSQL() as pg:
+    with PostgreSQL(ssl=True) as pg:
         yield pg
 
 
