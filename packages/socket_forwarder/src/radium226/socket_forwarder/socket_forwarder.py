@@ -10,6 +10,7 @@ import selectors
 import socket
 from typing import Protocol
 from queue import Queue, Empty
+import ssl
 
 from .host_and_port import HostAndPort
 
@@ -44,10 +45,10 @@ class ForwardingContext():
 
 class EventHandler(Protocol):
 
-    def on_data_sent(self, buffer: bytes):
+    def on_data_sent(self, context: ForwardingContext, upstream_to_downstream_buffer: bytes) -> bytes:
         ...
 
-    def on_data_received(self, buffer: bytes):
+    def on_data_received(self, context: ForwardingContext, downstream_to_upstream_buffer: bytes) -> bytes:
         ...
 
 
@@ -57,6 +58,8 @@ class SocketForwarder():
     _remote_host_and_port: HostAndPort
 
     _exit_stack: ExitStack
+
+    _ssl_context: ssl.SSLContext | None = None
 
     _command_queue: Queue
     _loop_thread: Thread | None
@@ -79,10 +82,14 @@ class SocketForwarder():
     def __enter__(self):
         selector = self._exit_stack.enter_context(selectors.DefaultSelector())
 
+        # ssl_context_for_downstream = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        # ssl_context_for_upstream = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+
         downstream_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         downstream_server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         downstream_server_socket.bind(self._local_host_and_port.as_tuple())
         downstream_server_socket.listen()
+        # downstream_server_socket = self._exit_stack.enter_context(ssl_context_for_downstream.wrap_socket(_downstream_server_socket, server_side=True))
         selector.register(
             downstream_server_socket, 
             selectors.EVENT_READ | selectors.EVENT_WRITE, 
@@ -97,6 +104,7 @@ class SocketForwarder():
 
             #print("[accept_connection] We're going to connect to the upstream server... ")
             upstream_connection_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            # upstream_connection_socket = self._exit_stack.enter_context(ssl_context_for_upstream.wrap_socket(upstream_connection_socket, server_hostname="localhost"))
             upstream_connection_socket.setblocking(False)
             upstream_connection_socket.connect_ex(self._remote_host_and_port.as_tuple())
             #print("[accept_connection] We've connected to the upstream server! ")
@@ -182,9 +190,7 @@ class SocketForwarder():
 
                         if len(context.downstream_to_upstream_buffer) == 0:
                             if event_handler := self._event_handler:
-                                if len(context.last_full_downstream_to_upstream_buffer) > 0:
-                                    event_handler.on_data_sent(context.last_full_downstream_to_upstream_buffer)
-                            context.last_full_downstream_to_upstream_buffer = b""
+                                    event_handler.on_data_sent(context)
 
                             if close_upstream_connection_socket_after_write:
                                 selector.unregister(context.upstream_connection_socket)
@@ -198,8 +204,6 @@ class SocketForwarder():
                                 )
 
                     case Side.DOWNSTREAM:
-                        if len(context.last_full_upstream_to_downstream_buffer) == 0:
-                            context.last_full_upstream_to_downstream_buffer = context.upstream_to_downstream_buffer
                         #print(f"[handle_connection/selectors.EVENT_WRITE/Side.DOWNSTREAM] Sending data from upstream to downstream... ")
                         try:
                             n = context.downstream_connection_socket.send(context.upstream_to_downstream_buffer)
@@ -212,9 +216,7 @@ class SocketForwarder():
                         
                         if len(context.upstream_to_downstream_buffer) == 0:
                             if event_handler := self._event_handler:
-                                if len(context.last_full_upstream_to_downstream_buffer) > 0:
-                                    event_handler.on_data_received(context.last_full_upstream_to_downstream_buffer)
-                            context.last_full_upstream_to_downstream_buffer = b""
+                                event_handler.on_data_received(context)
                                 
                             if close_downstream_connection_socket_after_write:
                                 selector.unregister(context.downstream_connection_socket)
