@@ -41,7 +41,7 @@ SessionKey: TypeAlias = int
 
 
 @dataclass
-class Session():
+class Context():
     
     upstream_connection_socket: socket.socket
     upstream_connection_already_closed: bool
@@ -93,12 +93,40 @@ class WriteDataToDownstream():
 Action = AlterData | CopyDataAsIs | AlterSession | WriteDataToUpstream | WriteDataToDownstream
 
 
+class Session(Protocol):
+
+    def __init__(self,
+        selector: selectors.BaseSelector,
+        context: Context,
+    ):
+        self._selector = selector
+        self._context = context
+
+    def write_data_to_upstream(self, data: bytes):
+        self._context.data_to_write_to_upstream += data
+
+    def write_data_to_downstream(self, data: bytes):
+        self._context.data_to_write_to_downstream += data
+
+    def clean_data_to_write_upstream(self):
+        self._context.data_to_write_to_upstream = b""
+
+    def clean_data_to_write_to_downstream(self):
+        self._context.data_to_write_to_downstream = b""
+
+
 class Handler(Protocol):
 
-    def handle_upstream_data(self, session: Session, data: bytes) -> list[Action]:
+    def handle_upstream_data(self, 
+        data: bytes, 
+        session: Session,
+    ) -> None:
         ...
 
-    def handle_downstream_data(self, session: Session, data: bytes) -> list[Action]:
+    def handle_downstream_data(self, 
+        data: bytes,
+        session: Session,
+    ) -> None:
         ...
 
     @staticmethod
@@ -291,6 +319,28 @@ class Proxy():
                 data=data,
             )
 
+        def write_data_to_upstream(session_key: SessionKey, data: bytes):
+            session = sessions_by_key[session_key]
+            session.data_to_write_to_upstream += data
+            modify_selector(
+                session.upstream_connection_socket, 
+                selectors.EVENT_WRITE,
+                data=DataToWriteToUpstream(
+                    session_key,
+                ),
+            )
+
+        def write_data_to_downstream(session_key: SessionKey, data: bytes):
+            session = sessions_by_key[session_key]
+            session.data_to_write_to_downstream += data
+            modify_selector(
+                session.downstream_connection_socket, 
+                selectors.EVENT_WRITE,
+                data=DataToWriteToDownstream(
+                    session_key,
+                ),
+            )
+
         def _iterate_loop(iteration_type: IterationType):
             print(iteration_type)
             match iteration_type:
@@ -303,13 +353,18 @@ class Proxy():
                     upstream_connection_socket.setblocking(False)
                     upstream_connection_socket.connect_ex(self._upstream_host_and_port.as_tuple())
                     
-                    session = Session(
+                    context = Context(
                         upstream_connection_socket,
                         False,
                         b"",
                         downstream_connection_socket,
                         False,
                         b"",
+                    )
+
+                    session = Session(
+                        selector,
+                        context,
                     )
 
                     global next_session_key
@@ -340,7 +395,7 @@ class Proxy():
                 ):
                     session = sessions_by_key[session_key]
 
-                    data = session.upstream_connection_socket.recv(BUFFER_SIZE)
+                    data = session.context.upstream_connection_socket.recv(BUFFER_SIZE)
                     if len(data) == 0:
                         print("No data received from upstream: closing connection")
                         selector.unregister(session.upstream_connection_socket)
@@ -365,24 +420,12 @@ class Proxy():
                                     sessions_by_key[session_key] = session
                                 
                                 case WriteDataToUpstream(data=new_data):
-                                    session.data_to_write_to_upstream += new_data
-                                    modify_selector(
-                                        session.upstream_connection_socket, 
-                                        selectors.EVENT_WRITE,
-                                        data=DataToWriteToUpstream(
-                                            session_key,
-                                        ),
-                                    )
+                                    write_data_to_upstream(session_key, new_data)
+
+                                case CleanDataToWriteToUpstream()
 
                                 case WriteDataToDownstream(data=new_data):
-                                    session.data_to_write_to_downstream += new_data
-                                    modify_selector(
-                                        session.downstream_connection_socket, 
-                                        selectors.EVENT_WRITE,
-                                        data=DataToWriteToDownstream(
-                                            session_key,
-                                        ),
-                                    )
+                                    write_data_to_downstream(session_key, new_data)
 
                                 case _ as never:
                                     assert_never(never)
@@ -446,6 +489,8 @@ class Proxy():
                     session_key,
                 ):
                     session = sessions_by_key[session_key]
+
+                    modify_selector_for_upstream = True
 
                     data = session.downstream_connection_socket.recv(BUFFER_SIZE)
                     if len(data) == 0:
