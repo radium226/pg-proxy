@@ -18,3 +18,6 @@ class HostAndPort():
     def parse_address(cls, address: str) -> "HostAndPort":
         host, port = address.split(":")
         return HostAndPort(host, int(port))
+    
+    def __repr__(self) -> str:
+        return f"{self.host}:{self.port}"

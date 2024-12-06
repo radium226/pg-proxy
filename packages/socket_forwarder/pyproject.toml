@@ -19,4 +19,5 @@ dev-dependencies = [
   "pytest>=8.3.3",
   "python-statemachine>=2.4.0",
   "radium226-pg",
+  "ruff>=0.8.1",
 ]

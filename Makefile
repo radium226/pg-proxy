@@ -43,3 +43,8 @@ test-construct:
 .PHONY: test-fsm
 test-fsm:
 	uv run pytest --capture="no" "packages/socket_forwarder" -k "test_fsm"
+
+
+.PHONY: test-proxy
+test-proxy:
+	uv run pytest --capture="no" "packages/socket_forwarder" -k "test_proxy"

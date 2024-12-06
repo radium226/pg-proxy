@@ -3,11 +3,12 @@ import struct
 from sqlglot import parse_one, exp
 
 
-from radium226.socket_forwarder import EventHandler
-
-from .server import (
-    Server,
+from radium226.socket_forwarder import (
     Handler,
+    Session,
+    CopyDataAsIs,
+    WriteDataToUpstream,
+    WriteDataToDownstream,
 )
 
 from construct import (
@@ -147,18 +148,16 @@ class WireWriter():
         return self.stream.getvalue()
 
 
-class WireEventHandler(EventHandler):
+class WireEventHandler(Handler):
 
     def __init__(self):
         pass
 
-    def on_data_received(self, data: bytes):
-        # print(f"Data received! data={data}")
-        return
+    def handle_upstream_data(self, session: Session, data: bytes):
+        # print(f"Handling upstream (data={data})")
+        return [CopyDataAsIs()]
 
-    def on_data_sent(self, data: bytes):
-        print(f"Data sent! data={data}")
-        
+    def handle_downstream_data(self, session: Session, data: bytes):
         buffer = BytesIO(data)
 
         ClientCommand = Enum(
@@ -205,19 +204,25 @@ class WireEventHandler(EventHandler):
             message = Select(FirstMessage, Message).parse(data)
             print(message)
 
-            match message.client_command:
-                case ClientCommand.query:
-                    query = message.content.query
+            if message.code == FirstMessageCode.ssl_request:
+                print("SSL request! ")
+                return [
+                    WriteDataToDownstream(b"N"),
+                ]
 
-                    print(f"query={query}")
-                    for table in parse_one(query, dialect="postgres").find_all(exp.Table):
-                        print(f"table={table}")
+            # match message.client_command:
+            #     case ClientCommand.query:
+            #         query = message.content.query
+
+            #         print(f"query={query}")
+            #         for table in parse_one(query, dialect="postgres").find_all(exp.Table):
+            #             print(f"table={table}")
 
         except Exception as e:
             print(repr(e))
             
 
-        return 
+        return [CopyDataAsIs()]
     
         buffer = BytesIO(data)
 

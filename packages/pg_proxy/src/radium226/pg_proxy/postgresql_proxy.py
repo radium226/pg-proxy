@@ -4,7 +4,7 @@ from contextlib import ExitStack
 from threading import Thread
 from io import BytesIO
 
-from radium226.socket_forwarder import SocketForwarder, HostAndPort
+from radium226.socket_forwarder import Proxy, HostAndPort
 
 
 from .server import Server
@@ -18,7 +18,7 @@ class PostgreSQLProxy():
     _local_host: str
     _local_port: int
 
-    _socket_forwarder: SocketForwarder | None = None
+    _socket_proxy: Proxy | None = None
 
     def __init__(self, 
         remote_host: str, 
@@ -30,7 +30,7 @@ class PostgreSQLProxy():
         self._remote_port = remote_port
 
         self._local_host = local_host or "localhost"
-        self._local_port = local_port or 5432
+        self._local_port = local_port or 9876
         
         self._exit_stack = ExitStack()
 
@@ -54,9 +54,9 @@ class PostgreSQLProxy():
 
     def __enter__(self):
         self._socket_forwarder = self._exit_stack.enter_context(
-            SocketForwarder(
-                HostAndPort(self._local_host, self._local_port), 
+            Proxy(
                 HostAndPort(self._remote_host, self._remote_port),
+                HostAndPort(self._local_host, self._local_port), 
                 WireEventHandler()
             )
         )
